@@ -1,18 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Container, AppBar, Toolbar, Typography, Box } from '@mui/material';
-import InputForm from '@/app/components/InputForm';
-import ResultView from '@/app/components/ResultView';
-import LoadingOverlay from '@/app/components/LoadingOverlay';
+import { Container, AppBar, Toolbar, Typography, Box, Paper, Stack } from '@mui/material';
+import Grid from '@mui/material/Grid'; // MUI v6
+import InputForm from './components/InputForm';
+import ResultView from './components/ResultView';
+import LoadingOverlay from './components/LoadingOverlay';
 import { generateDrafts, postAndLog, DraftContent } from './actions';
-import { getPersonas, Persona } from './configActions'; // 追加
+import { getPersonas, Persona } from './configActions';
 
 export default function Home() {
-  const [step, setStep] = useState<'input' | 'result'>('input');
   const [isLoading, setIsLoading] = useState(false);
 
-  // ★入力データをここで保持する（リフトアップ）
+  // 入力データ
   const [memo, setMemo] = useState('');
   const [platform, setPlatform] = useState('Instagram');
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -22,7 +22,7 @@ export default function Home() {
   const [drafts, setDrafts] = useState<DraftContent[]>([]);
   const [thumbnailBase64, setThumbnailBase64] = useState<string>("");
 
-  // ペルソナ情報（生成時に送るためここで取得）
+  // ペルソナ情報
   const [personas, setPersonas] = useState<Persona[]>([]);
   useEffect(() => {
     getPersonas().then(data => setPersonas(data));
@@ -31,12 +31,10 @@ export default function Home() {
   const handleGenerate = async () => {
     setIsLoading(true);
 
-    // FormDataの組み立て
     const formData = new FormData();
     formData.append('memo', memo);
     formData.append('platform', platform);
 
-    // 現在選択されているペルソナを送る
     const currentPersona = personas[personaIndex] || { target: '', tone: '', format: '' };
     formData.append('persona', JSON.stringify(currentPersona));
 
@@ -46,13 +44,12 @@ export default function Home() {
 
     try {
       const result = await generateDrafts(formData);
-
       if (result.success && result.drafts) {
         setDrafts(result.drafts);
         if (result.thumbnailBase64) {
           setThumbnailBase64(result.thumbnailBase64);
         }
-        setStep('result');
+        // ★以前のような setStep('result') は不要
       } else {
         alert('生成に失敗しました: ' + result.error);
       }
@@ -70,12 +67,9 @@ export default function Home() {
     try {
       await postAndLog(finalText, thumbnailBase64);
       alert('投稿＆保存が完了しました！');
-
-      // ★リセット処理（画像と生成結果だけ消す。設定は残す）
-      setStep('input');
+      // 投稿後は結果だけクリアして、次の投稿に移りやすくする
       setDrafts([]);
-      setImageFiles([]); // 画像はリセット
-      // setMemo(""); // メモは残してもいいし消してもいい
+      setImageFiles([]);
     } catch (e) {
       alert('投稿に失敗しました');
     } finally {
@@ -93,28 +87,60 @@ export default function Home() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        {step === 'input' ? (
-          <InputForm
-            // ★StateとSetterを渡す
-            memo={memo} setMemo={setMemo}
-            platform={platform} setPlatform={setPlatform}
-            personaIndex={personaIndex} setPersonaIndex={setPersonaIndex}
-            imageFiles={imageFiles} setImageFiles={setImageFiles}
-            onSubmit={handleGenerate}
-            isLoading={isLoading}
-          />
-        ) : (
-          <ResultView
-            drafts={drafts}
-            // ★プレビュー用に配列の1枚目を渡す
-            originalImage={imageFiles.length > 0 ? imageFiles[0] : null}
-            platform={platform} // ★媒体名を渡す
-            onBack={() => setStep('input')}
-            onPost={handlePost}
-          />
-        )}
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        {/* ★ここからGridレイアウトに変更 */}
+        <Grid container spacing={3}>
+
+          {/* 左カラム：入力エリア */}
+          <Grid size={{ xs: 12, md: 5 }}>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
+                📝 ネタ・設定入力
+              </Typography>
+              <InputForm
+                memo={memo} setMemo={setMemo}
+                platform={platform} setPlatform={setPlatform}
+                personaIndex={personaIndex} setPersonaIndex={setPersonaIndex}
+                imageFiles={imageFiles} setImageFiles={setImageFiles}
+                onSubmit={handleGenerate}
+                isLoading={isLoading}
+              />
+            </Paper>
+          </Grid>
+
+          {/* 右カラム：結果エリア */}
+          <Grid size={{ xs: 12, md: 7 }}>
+            {drafts.length > 0 ? (
+              // 結果がある場合
+              <ResultView
+                drafts={drafts}
+                originalImage={imageFiles.length > 0 ? imageFiles[0] : null}
+                platform={platform}
+                // setPlatformは左画面で変えられるので不要
+                onPost={handlePost}
+              />
+            ) : (
+              // 結果がまだない場合（プレースホルダー）
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3, height: '100%', minHeight: 400, borderRadius: 2,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  bgcolor: 'transparent', border: '2px dashed #ccc'
+                }}
+              >
+                <Stack alignItems="center" spacing={1} sx={{ color: 'text.secondary' }}>
+                  <Typography variant="h5">👈 左側に入力して生成！</Typography>
+                  <Typography variant="body1">
+                    ここにAIが作成した3つの案と編集画面が表示されます。
+                  </Typography>
+                </Stack>
+              </Paper>
+            )}
+          </Grid>
+        </Grid>
       </Container>
+
       <LoadingOverlay open={isLoading} />
     </Box>
   );

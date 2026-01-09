@@ -7,29 +7,27 @@ import {
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import SendIcon from '@mui/icons-material/Send';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import XIcon from '@mui/icons-material/X';
-import MusicNoteIcon from '@mui/icons-material/MusicNote'; // TikTok用
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import { DraftContent } from '@/app/actions';
 
 type Props = {
   drafts: DraftContent[];
-  onBack: () => void;
+  // onBack は不要になりました
   onPost: (finalText: string) => void;
   originalImage: File | null;
-  platform: string; // ★ここを追加
+  platform: string;
 };
 
-export default function ResultView({ drafts, onBack, onPost, originalImage, platform }: Props) {
+export default function ResultView({ drafts, onPost, originalImage, platform }: Props) {
   const [body, setBody] = useState('');
   const [tags, setTags] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [toastOpen, setToastOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // 媒体アイコンの出し分け
   const getPlatformIcon = () => {
     switch (platform) {
       case 'Instagram': return <InstagramIcon fontSize="small" />;
@@ -47,8 +45,11 @@ export default function ResultView({ drafts, onBack, onPost, originalImage, plat
     }
   }, [originalImage]);
 
+  // draftsが変わったら（再生成されたら）内容を更新
   useEffect(() => {
     if (drafts.length > 0) {
+      // 選択状態をリセット
+      setSelectedIndex(0);
       setBody(drafts[0].body);
       setTags(drafts[0].tags);
     }
@@ -72,37 +73,22 @@ export default function ResultView({ drafts, onBack, onPost, originalImage, plat
   };
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 800, mx: 'auto', mt: 2 }}>
+    <Stack spacing={3}>
 
       {/* ヘッダー */}
       <Stack direction="row" alignItems="center" spacing={1}>
-        <Button startIcon={<ArrowBackIcon />} onClick={onBack}>戻る</Button>
-
-        {/* ★媒体バッジの表示 */}
         <Chip
           icon={getPlatformIcon()}
-          label={`${platform}向け`}
+          label={`${platform}向けの提案`}
           color="primary"
-          variant="outlined"
-          sx={{ fontWeight: 'bold' }}
+          sx={{ fontWeight: 'bold', fontSize: '1rem', py: 2 }}
         />
-
-        <Typography variant="h6" sx={{ flexGrow: 1, textAlign: 'center' }}>
-          編集・確認
+        <Typography variant="body2" color="text.secondary">
+          気に入った案をクリックして選択してください
         </Typography>
       </Stack>
 
-      {/* 以下、変更なし（画像プレビュー、Grid、編集エリア...） */}
-      {previewUrl && (
-        <Box sx={{ textAlign: 'center' }}>
-          <CardMedia
-            component="img"
-            src={previewUrl}
-            sx={{ maxHeight: 200, objectFit: 'contain', borderRadius: 2 }}
-          />
-        </Box>
-      )}
-
+      {/* 3案リスト */}
       <Grid container spacing={2}>
         {drafts.map((draft, index) => (
           <Grid key={index} size={{ xs: 12, md: 4 }}>
@@ -111,8 +97,9 @@ export default function ResultView({ drafts, onBack, onPost, originalImage, plat
               sx={{
                 height: '100%',
                 borderColor: selectedIndex === index ? 'primary.main' : 'divider',
-                borderWidth: selectedIndex === index ? 2 : 1,
-                bgcolor: selectedIndex === index ? 'primary.50' : 'background.paper'
+                borderWidth: selectedIndex === index ? 3 : 1, // 選択中をより太く
+                bgcolor: selectedIndex === index ? 'primary.50' : 'background.paper',
+                transition: 'all 0.2s'
               }}
             >
               <CardActionArea onClick={() => handleSelect(index)} sx={{ height: '100%', p: 1 }}>
@@ -135,13 +122,14 @@ export default function ResultView({ drafts, onBack, onPost, originalImage, plat
         ))}
       </Grid>
 
-      <Card variant="outlined" sx={{ p: 3 }}>
+      {/* 編集エリア */}
+      <Card variant="outlined" sx={{ p: 3, boxShadow: 3 }}>
         <Stack spacing={3}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="subtitle1" fontWeight="bold">編集エリア</Typography>
+            <Typography variant="h6" fontWeight="bold">✍️ 編集エリア</Typography>
             <Tooltip title="承認依頼用にコピー">
               <Button variant="outlined" startIcon={<ContentCopyIcon />} onClick={handleCopy} size="small">
-                承認用にコピー
+                テキストをコピー
               </Button>
             </Tooltip>
           </Stack>
@@ -149,10 +137,11 @@ export default function ResultView({ drafts, onBack, onPost, originalImage, plat
           <TextField
             label="投稿本文"
             multiline
-            minRows={4}
+            minRows={5}
             value={body}
             onChange={(e) => setBody(e.target.value)}
             fullWidth
+            sx={{ bgcolor: '#fff' }}
           />
           <TextField
             label="ハッシュタグ"
@@ -163,19 +152,19 @@ export default function ResultView({ drafts, onBack, onPost, originalImage, plat
             fullWidth
             sx={{ bgcolor: '#f9f9f9' }}
           />
+
+          <Button
+            variant="contained"
+            color="secondary"
+            size="large"
+            startIcon={<SendIcon />}
+            onClick={handlePost}
+            sx={{ py: 1.5, fontSize: '1.2rem', fontWeight: 'bold', mt: 1 }}
+          >
+            この内容で投稿する
+          </Button>
         </Stack>
       </Card>
-
-      <Button
-        variant="contained"
-        color="secondary"
-        size="large"
-        startIcon={<SendIcon />}
-        onClick={handlePost}
-        sx={{ py: 1.5, fontSize: '1.1rem' }}
-      >
-        SNSへ投稿する
-      </Button>
 
       <Snackbar
         open={toastOpen}
