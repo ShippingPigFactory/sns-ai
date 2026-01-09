@@ -69,17 +69,30 @@ export async function generateDrafts(formData: FormData) {
 
         // プロンプトの組み立て
         const prompt = `
-            あなたはプロのSNS運用担当者です。
-            以下の画像とメモ、設定を元に、${platform}用の投稿文を3パターン作成してください。
-            
-            【投稿メモ】${memo}
-            【設定】ターゲット:${persona.target} / トーン:${persona.tone} / 構成:${persona.format}
-            
-            【重要：出力形式】
-            各案について、以下の2つに分けて出力してください。
-            - body: 投稿本文（ハッシュタグは含めない）
-            - tags: ハッシュタグのみ（#〇〇 #△△ の形式でスペース区切り）
-            `;
+        あなたはプロのSNS運用担当者です。
+        以下の画像とメモ、設定を元に、${platform}用の投稿文を3パターン作成してください。
+        
+        【投稿メモ】
+        ${memo}
+
+        【設定プロファイル】
+        - ターゲット: ${persona.target}
+        - トーン: ${persona.tone}
+        - 構成指示: ${persona.format}
+        
+        【媒体特性: ${platform}】
+        ${platform === 'X' ? '- 140文字以内\n- ハッシュタグは2個まで' : '- 絵文字を適切に使用\n- ハッシュタグは5〜10個'}
+
+        【重要：レイアウト・改行ルール】
+        読みやすさを最優先してください。以下のルールを厳守すること。
+        1. 【段落分け】文脈が変わる場所では必ず改行を入れること。壁のような長文は禁止。
+        2. 【強調】「冒頭の挨拶」の後と、「締めの言葉」の前には、必ず「空行（1行あける）」を入れて余白を作ること。
+        3. 【視認性】箇条書きや強調したいポイントの前後は改行して目立たせること。
+        
+        【出力】
+        JSON形式で draft1, draft2, draft3 を出力。
+        各draftは { "body": "...", "tags": "..." } の形式。
+        `;
 
         const result = await model.generateContent([prompt, ...imageParts]);
         const content = JSON.parse(result.response.text());
