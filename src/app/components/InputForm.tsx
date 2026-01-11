@@ -9,9 +9,8 @@ import Grid from '@mui/material/Grid';
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import { getPersonas, Persona } from '@/app/configActions';
+import { Persona } from '@/app/configActions'; // getPersonasは不要になるので削除
 
-// ★親から受け取るデータと変更関数を定義
 type Props = {
   memo: string;
   setMemo: (v: string) => void;
@@ -21,28 +20,26 @@ type Props = {
   setPersonaIndex: (v: number) => void;
   imageFiles: File[];
   setImageFiles: (files: File[]) => void;
-  onSubmit: () => void; // 引数なしに変更（親がデータを持ってるので）
+  onSubmit: () => void;
   isLoading: boolean;
+  setIsLoading: (v: boolean) => void;
+  personas: Persona[]; // ★ここを追加：親からリストをもらう
 };
 
 export default function InputForm({
   memo, setMemo, platform, setPlatform, personaIndex, setPersonaIndex,
-  imageFiles, setImageFiles, onSubmit, isLoading
+  imageFiles, setImageFiles, onSubmit, isLoading, setIsLoading,
+  personas // ★ここを受け取る
 }: Props) {
 
-  const [personas, setPersonas] = useState<Persona[]>([]);
+  // ★削除：const [personas, setPersonas] = useState... は削除
+  // ★削除：useEffect(() => { getPersonas... }, []) も削除
+
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
-  // ペルソナ読み込み
-  useEffect(() => {
-    getPersonas().then(data => setPersonas(data));
-  }, []);
-
-  // 画像プレビューURLの生成（imageFilesが変わるたびに更新）
   useEffect(() => {
     const urls = imageFiles.map(file => URL.createObjectURL(file));
     setPreviewUrls(urls);
-    // クリーンアップ
     return () => urls.forEach(url => URL.revokeObjectURL(url));
   }, [imageFiles]);
 
@@ -61,7 +58,7 @@ export default function InputForm({
   return (
     <Stack spacing={3} sx={{ maxWidth: 600, mx: 'auto', mt: 2 }}>
 
-      {/* 1. 媒体選択 */}
+      {/* 媒体選択などはそのまま */}
       <ToggleButtonGroup
         color="primary"
         value={platform}
@@ -74,7 +71,7 @@ export default function InputForm({
         <ToggleButton value="TikTok">TikTok</ToggleButton>
       </ToggleButtonGroup>
 
-      {/* 2. ペルソナ選択 */}
+      {/* ペルソナ選択 */}
       <FormControl fullWidth>
         <InputLabel>ペルソナ / 設定プロファイル</InputLabel>
         <Select
@@ -94,7 +91,7 @@ export default function InputForm({
         </Select>
       </FormControl>
 
-      {/* 3. 画像アップロード */}
+      {/* ...以下、画像アップロード等は変更なし... */}
       <Box>
         <Button
           variant="outlined"
@@ -124,7 +121,6 @@ export default function InputForm({
         </Grid>
       </Box>
 
-      {/* 4. メモ入力 */}
       <TextField
         label="メモ / 伝えたいこと"
         multiline
@@ -135,7 +131,6 @@ export default function InputForm({
         placeholder="例：新商品が入荷しました。"
       />
 
-      {/* 5. 生成ボタン */}
       <Button
         variant="contained"
         size="large"

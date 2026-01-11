@@ -8,6 +8,7 @@ import ResultView from './components/ResultView';
 import LoadingOverlay from './components/LoadingOverlay';
 import { generateDrafts, postAndLog, DraftContent } from './actions';
 import { getPersonas, Persona } from './configActions';
+import StyleAnalyzer from './components/StyleAnalyzer';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
@@ -24,8 +25,15 @@ export default function Home() {
 
   // ペルソナ情報
   const [personas, setPersonas] = useState<Persona[]>([]);
+
+  // useEffectの中身を関数として外に出す
+  const fetchPersonas = async () => {
+    const data = await getPersonas();
+    setPersonas(data);
+  };
+
   useEffect(() => {
-    getPersonas().then(data => setPersonas(data));
+    fetchPersonas();
   }, []);
 
   const handleGenerate = async () => {
@@ -104,7 +112,15 @@ export default function Home() {
                 imageFiles={imageFiles} setImageFiles={setImageFiles}
                 onSubmit={handleGenerate}
                 isLoading={isLoading}
+                setIsLoading={setIsLoading}
+                personas={personas}
               />
+              <Box sx={{ mt: 2, textAlign: 'right' }}>
+                <StyleAnalyzer
+                  onSuccess={fetchPersonas}
+                  personas={personas}
+                />
+              </Box>
             </Paper>
           </Grid>
 
