@@ -124,7 +124,7 @@ export default function InputForm({
       <TextField
         label="メモ / 伝えたいこと"
         multiline
-        rows={3}
+        rows={5}
         value={memo}
         onChange={(e) => setMemo(e.target.value)}
         fullWidth
